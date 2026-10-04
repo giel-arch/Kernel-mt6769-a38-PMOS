@@ -36,18 +36,20 @@ jobs:
 
       - name: Merge defconfig + fragmen pmOS
         run: |
+          export PATH="$GITHUB_WORKSPACE/toolchain/bin:$PATH"
           cd kernel
           echo -n "" > scripts/setlocalversion
-          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 oppo_a38_defconfig
+          make O=out ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 oppo_a38_defconfig
           # pmos.fragment menimpa pilihan defconfig (DEVTMPFS dll.)
           ./scripts/kconfig/merge_config.sh -m -O out \
             out/.config ../pmos.fragment
-          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 olddefconfig
+          make O=out ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 olddefconfig
           grep -E 'DEVTMPFS|LOCALVERSION|MODULE_FORCE_LOAD|MODULE_SIG=' \
             out/.config || true
 
       - name: Build Image.gz
         run: |
+          export PATH="$GITHUB_WORKSPACE/toolchain/bin:$PATH"
           cd kernel
           make -j"$(nproc)" O=out ARCH=arm64 \
             CC=clang LLVM=1 LLVM_IAS=1 \
