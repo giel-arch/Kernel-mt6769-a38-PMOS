@@ -38,7 +38,10 @@ jobs:
         run: |
           export PATH="$GITHUB_WORKSPACE/toolchain/bin:$PATH"
           cd kernel
-          echo -n "" > scripts/setlocalversion
+          # JANGAN kosongkan scripts/setlocalversion: di kernel 6.6 ini
+          # kernel.release dibuat oleh skrip itu, dan dengan
+          # CONFIG_LOCALVERSION_AUTO=n ia hanya mencetak
+          # CONFIG_LOCALVERSION (= -ossi-pmos)
           make O=out ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 oppo_a38_defconfig
           # pmos.fragment menimpa pilihan defconfig (DEVTMPFS dll.)
           ./scripts/kconfig/merge_config.sh -m -O out \
