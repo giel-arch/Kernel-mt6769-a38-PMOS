@@ -64,10 +64,12 @@ jobs:
           cp lib/x86_64/libmagiskboot.so magiskboot && chmod +x magiskboot
 
           cp "$GITHUB_WORKSPACE/assets/boot_b.bin" .
-          cp "$GITHUB_WORKSPACE/kernel/out/arch/arm64/boot/Image.gz" kernel
           ./magiskboot unpack boot_b.bin
+          # PENTING: cp SETELAH unpack (unpack menulis file 'kernel' stok)
+          cp "$GITHUB_WORKSPACE/kernel/out/arch/arm64/boot/Image.gz" kernel
           ./magiskboot repack boot_b.bin boot-pmos.img
           cp boot-pmos.img "$GITHUB_WORKSPACE/"
+          cp "$GITHUB_WORKSPACE/kernel/out/.config" "$GITHUB_WORKSPACE/pmos-final.config"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -76,5 +78,5 @@ jobs:
           path: |
             kernel/out/arch/arm64/boot/Image.gz
             boot-pmos.img
-            kernel/out/.config
+            pmos-final.config
           if-no-files-found: error

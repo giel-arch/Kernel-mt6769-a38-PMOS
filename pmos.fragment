@@ -1,11 +1,13 @@
 # Fragmen konfigurasi kernel postmarketOS/Nura untuk OPPO A38 (ossi)
-# Dimerged di atas oppo_a38_defconfig (scripts/kconfig/merge_config.sh)
+# Dimerged di atas oppo_a38_defconfig (scripts/kconfig/merge_config.sh).
 #
-# AKAR MASALAH PORT LAMA:
-#   Kernel aktif punya "# CONFIG_DEVTMPFS is not set". Initramfs pmOS
-#   melakukan `mount -t devtmpfs dev /dev` secara eksplisit — tanpa
-#   CONFIG_DEVTMPFS, /dev kosong, tidak ada /dev/mmcblk0p*, sehingga
-#   init gagal menemukan/mount partisi root. Ini WAJIB =y.
+# Catatan: hindari kata "CONFIG_" di komentar — merge_config mem-parsing
+# setiap baris fragmen.
+#
+# AKAR MASALAH PORT LAMA: kernel lama tidak mengaktifkan devtmpfs.
+# Initramfs pmOS menjalankan "mount -t devtmpfs dev /dev" secara
+# eksplisit; tanpa ini /dev kosong, /dev/mmcblk0p* tidak pernah muncul,
+# dan init gagal menemukan/mount partisi root. WAJIB =y.
 CONFIG_DEVTMPFS=y
 CONFIG_DEVTMPFS_MOUNT=y
 
@@ -19,19 +21,18 @@ CONFIG_EXT4_FS_POSIX_ACL=y
 CONFIG_EXT4_FS_SECURITY=y
 CONFIG_TMPFS=y
 CONFIG_TMPFS_POSIX_ACL=y
-CONFIG_DEVTMPFS_SAFE=y
 
-# USB: gadget NCM untuk SSH via USB (UDC = musb-hdrc vendor, dimuat
-# sebagai modul vendor; configfs tetap perlu =y di kernel)
+# USB: gadget NCM untuk SSH via kabel (UDC musb-hdrc vendor dimuat
+# sebagai modul vendor; configfs tetap perlu built-in di kernel)
 CONFIG_USB_GADGET=y
 CONFIG_USB_CONFIGFS=y
 CONFIG_USB_CONFIGFS_NCM=y
 CONFIG_USB_CONFIGFS_F_FS=y
 
 # Modul vendor (vendor_boot) dibuat untuk kernel stok: vermagic beda
-# dengan build kita, jadi dimuat paksa via force_insmod
-# (finit_module + MODULE_INIT_IGNORE_VERMAGIC/MODVERSIONS).
-# Kernel harus mengizinkan force load dan tidak memaksa signature.
+# dengan build kita, jadi dimuat paksa lewat force_insmod
+# (finit_module + flag IGNORE_VERMAGIC/IGNORE_MODVERSIONS). Kernel
+# harus mengizinkan force load dan tidak memaksa tanda tangan modul.
 CONFIG_MODULES=y
 CONFIG_MODULE_FORCE_LOAD=y
 # CONFIG_MODULE_SIG is not set
