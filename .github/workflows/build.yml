@@ -57,16 +57,17 @@ jobs:
 
       - name: Pack boot-pmos.img (repack boot_b stok, kernel saja)
         run: |
+          mkdir pack && cd pack
           curl -sL -o magisk.apk \
             https://github.com/topjohnwu/Magisk/releases/download/v28.1/Magisk-v28.1.apk
           python3 -c "import zipfile; zipfile.ZipFile('magisk.apk').extract('lib/x86_64/libmagiskboot.so')"
           cp lib/x86_64/libmagiskboot.so magiskboot && chmod +x magiskboot
 
-          cp assets/boot_b.bin .
+          cp "$GITHUB_WORKSPACE/assets/boot_b.bin" .
+          cp "$GITHUB_WORKSPACE/kernel/out/arch/arm64/boot/Image.gz" kernel
           ./magiskboot unpack boot_b.bin
-          cp kernel/out/arch/arm64/boot/Image.gz kernel.img
           ./magiskboot repack boot_b.bin boot-pmos.img
-          rm -f ramdisk.cpio kernel dtb boot_signature header boot_b.bin magisk.apk
+          cp boot-pmos.img "$GITHUB_WORKSPACE/"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
