@@ -1,0 +1,77 @@
+name: Build Kernel (pmOS) OPPO A38
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  kernel:
+    name: Kernel 6.6.30 + boot.img (pmOS config)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repo ini (fragment + assets)
+        uses: actions/checkout@v4
+
+      - name: Checkout source kernel (giel-arch/kernel-mt6769-a38)
+        uses: actions/checkout@v4
+        with:
+          repository: giel-arch/kernel-mt6769-a38
+          ref: main
+          path: kernel
+          fetch-depth: 1
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex \
+            gcc-aarch64-linux-gnu git libssl-dev python3 zstd lz4
+
+      - name: Download toolchain (AOSP clang r510928)
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/toolchain"
+          git clone --depth=1 \
+            https://gitlab.com/crdroidandroid/android_prebuilts_clang_host_linux-x86_clang-r510928.git \
+            "$GITHUB_WORKSPACE/toolchain"
+
+      - name: Merge defconfig + fragmen pmOS
+        run: |
+          cd kernel
+          echo -n "" > scripts/setlocalversion
+          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 oppo_a38_defconfig
+          # pmos.fragment menimpa pilihan defconfig (DEVTMPFS dll.)
+          ./scripts/kconfig/merge_config.sh -m -O out \
+            out/.config ../pmos.fragment
+          make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 olddefconfig
+          grep -E 'DEVTMPFS|LOCALVERSION|MODULE_FORCE_LOAD|MODULE_SIG=' \
+            out/.config || true
+
+      - name: Build Image.gz
+        run: |
+          cd kernel
+          make -j"$(nproc)" O=out ARCH=arm64 \
+            CC=clang LLVM=1 LLVM_IAS=1 \
+            CROSS_COMPILE=aarch64-linux-gnu- Image.gz
+
+      - name: Pack boot-pmos.img (repack boot_b stok, kernel saja)
+        run: |
+          curl -sL -o magisk.apk \
+            https://github.com/topjohnwu/Magisk/releases/download/v28.1/Magisk-v28.1.apk
+          python3 -c "import zipfile; zipfile.ZipFile('magisk.apk').extract('lib/x86_64/libmagiskboot.so')"
+          cp lib/x86_64/libmagiskboot.so magiskboot && chmod +x magiskboot
+
+          cp assets/boot_b.bin .
+          ./magiskboot unpack boot_b.bin
+          cp kernel/out/arch/arm64/boot/Image.gz kernel.img
+          ./magiskboot repack boot_b.bin boot-pmos.img
+          rm -f ramdisk.cpio kernel dtb boot_signature header boot_b.bin magisk.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmos-kernel-ossi
+          path: |
+            kernel/out/arch/arm64/boot/Image.gz
+            boot-pmos.img
+            kernel/out/.config
+          if-no-files-found: error
