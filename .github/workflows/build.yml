@@ -38,6 +38,8 @@ jobs:
         run: |
           export PATH="$GITHUB_WORKSPACE/toolchain/bin:$PATH"
           cd kernel
+          # Patch simbol oplus project (device_info.ko rantai mtk-mmc)
+          patch -p1 < ../patches/0100-ossi-projectinfo.patch
           # JANGAN kosongkan scripts/setlocalversion: di kernel 6.6 ini
           # kernel.release dibuat oleh skrip itu, dan dengan
           # CONFIG_LOCALVERSION_AUTO=n ia hanya mencetak

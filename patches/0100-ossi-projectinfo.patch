@@ -1,0 +1,53 @@
+Stub ekspor simbol Oplus project untuk OPPO A38 (device_info.ko rantai mtk-mmc)
+
+device_info.ko mengimpor get_project/get_Modem_Version/get_Operator_Version
+yang di build vendor diekspor kernel (oplus_projectinfo, DT-injected CDT).
+GKI bersih tidak punya; tanpa ini device_info.ko gagal load dan kaskade
+ufs-oplus-dbg -> ufs-mediatek-mod -> rpmb-mtk -> mtk-mmc ikut mati.
+
+--- a/drivers/misc/Makefile
++++ b/drivers/misc/Makefile
+@@ -69,3 +69,4 @@
+ obj-$(CONFIG_TPS6594_PFSM)	+= tps6594-pfsm.o
+ obj-$(CONFIG_UID_SYS_STATS)	+= uid_sys_stats.o
+ obj-$(CONFIG_PKVM_SMC_FILTER)  += pkvm-smc/
++obj-y += ossi-projectinfo.o
+--- /dev/null
++++ b/drivers/misc/ossi-projectinfo.c
+@@ -0,0 +1,36 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * ossi-projectinfo: stub ekspor simbol Oplus project untuk OPPO A38.
++ *
++ * Modul vendor (device_info.ko dst.) mengimpor get_project()/
++ * get_Modem_Version()/get_Operator_Version() yang pada build vendor
++ * diekspor oleh kernel (vendor/oplus/kernel/boot/oplus_projectinfo/
++ * mtk/oplus_project.c membaca DT node "oplus_project" yang diinjeksi
++ * bootloader dari CDT). Kernel GKI bersih tidak punya fungsi itu, dan
++ * TIDAK ada modul vendor yang mengekspornya, sehingga device_info.ko
++ * (dan rantai mtk-mmc di belakangnya) menolak dimuat.
++ *
++ * Nilai tetap cukup: simbol hanya dipakai device_info untuk matching
++ * /proc devinfo (get_Operator_Version stub vendor pun selalu -EINVAL).
++ */
++#include <linux/errno.h>
++#include <linux/export.h>
++#include <linux/types.h>
++
++unsigned int get_project(void)
++{
++	return 22361; /* project Oppo A38 (branch oppo/mt6769_*_a38_a18) */
++}
++EXPORT_SYMBOL(get_project);
++
++int32_t get_Modem_Version(void)
++{
++	return -EINVAL; /* perilaku vendor tanpa data CDT */
++}
++EXPORT_SYMBOL(get_Modem_Version);
++
++int32_t get_Operator_Version(void)
++{
++	return -EINVAL; /* stub vendor memang selalu -EINVAL */
++}
++EXPORT_SYMBOL(get_Operator_Version);
