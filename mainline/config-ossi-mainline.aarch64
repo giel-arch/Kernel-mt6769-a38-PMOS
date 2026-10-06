@@ -7789,3 +7789,9 @@ CONFIG_MEMTEST=y
 # end of Kernel hacking
 
 CONFIG_IO_URING_ZCRX=y
+
+# OPPO A38 ossi: pstore/ramoops (console via cmdline lk) + MUSB MTK builtin
+CONFIG_PSTORE=y
+CONFIG_PSTORE_CONSOLE=y
+CONFIG_PSTORE_PMSG=y
+CONFIG_PSTORE_RAM=y
