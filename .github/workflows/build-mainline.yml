@@ -64,8 +64,8 @@ jobs:
         run: |
           cd kernel
           python3 ../tools/mkbootimg.py \
-            --kernel out/arch/arm64/boot/Image.gz \
-            --dtb out/arch/arm64/boot/dts/mediatek/mt6768-oppo-ossi.dtb \
+            --kernel arch/arm64/boot/Image.gz \
+            --dtb arch/arm64/boot/dts/mediatek/mt6768-oppo-ossi.dtb \
             --header_version 2 --pagesize 4096 \
             --base 0x40078000 --kernel_offset 0x00008000 \
             --ramdisk_offset 0x01000000 --tags_offset 0x07c08000 \
