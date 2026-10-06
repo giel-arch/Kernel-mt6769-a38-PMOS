@@ -1,0 +1,87 @@
+name: Build Mainline Kernel (mt6768) OPPO A38
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mainline/**"
+      - "tools/**"
+      - ".github/workflows/build-mainline.yml"
+  workflow_dispatch:
+
+# Pin source: mt6768-mainline/linux (komunitas, SoC sama dengan A38)
+env:
+  MAINLINE_REPO: https://github.com/mt6768-mainline/linux
+  MAINLINE_SHA: 6fceef1465a77bee219b33eb8c8816022fa3e074
+
+jobs:
+  mainline:
+    name: Mainline 6.16 mt6768 -> boot-mainline.img
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repo ini
+        uses: actions/checkout@v4
+
+      - name: Clone mt6768-mainline/linux
+        run: |
+          git clone --depth=1 "${MAINLINE_REPO}" kernel
+          cd kernel
+          git fetch --depth=1 origin "${MAINLINE_SHA}"
+          git checkout "${MAINLINE_SHA}"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential cpio curl flex \
+            gcc-aarch64-linux-gnu git libssl-dev python3 python3-dev zstd
+
+      - name: Pasang DT ossi
+        run: |
+          cp mainline/mt6768-oppo-ossi.dts kernel/arch/arm64/boot/dts/mediatek/
+          # daftarkan ke Makefile dtb
+          echo 'dtb-$(CONFIG_ARCH_MEDIATEK) += mt6768-oppo-ossi.dtb' \
+            >> kernel/arch/arm64/boot/dts/mediatek/Makefile
+          grep -n 'ossi' kernel/arch/arm64/boot/dts/mediatek/Makefile
+
+      - name: Konfigurasi kernel
+        run: |
+          cd kernel
+          cp ../mainline/config-ossi-mainline.aarch64 .config
+          ./scripts/config --file .config \
+            --set-str LOCALVERSION "-ossi-mainline" \
+            --disable LOCALVERSION_AUTO
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
+          grep -E 'ARCH_MEDIATEK|MMC_MTK|PSTORE_RAM|USB_CONFIGFS_NCM|EXT4_FS=|LOCALVERSION=' .config | head -10
+
+      - name: Build Image.gz + DTB
+        run: |
+          cd kernel
+          make -j"$(nproc)" ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            Image.gz mediatek/mt6768-oppo-ossi.dtb
+
+      - name: Pack boot-mainline.img (header v2 + dtb, pola lancelot)
+        run: |
+          cd kernel
+          python3 ../tools/mkbootimg.py \
+            --kernel out/arch/arm64/boot/Image.gz \
+            --dtb out/arch/arm64/boot/dts/mediatek/mt6768-oppo-ossi.dtb \
+            --header_version 2 --pagesize 4096 \
+            --base 0x40078000 --kernel_offset 0x00008000 \
+            --ramdisk_offset 0x01000000 --tags_offset 0x07c08000 \
+            --dtb_offset 0x07c08000 \
+            --cmdline "console=tty0" \
+            -o boot-mainline.img
+          cp boot-mainline.img "$GITHUB_WORKSPACE/"
+          cp out/arch/arm64/boot/Image.gz "$GITHUB_WORKSPACE/Image-mainline.gz"
+          cp out/arch/arm64/boot/dts/mediatek/mt6768-oppo-ossi.dtb "$GITHUB_WORKSPACE/"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mainline-kernel-ossi
+          path: |
+            boot-mainline.img
+            Image-mainline.gz
+            mt6768-oppo-ossi.dtb
+          if-no-files-found: error
