@@ -73,8 +73,8 @@ jobs:
             --cmdline "console=tty0" \
             -o boot-mainline.img
           cp boot-mainline.img "$GITHUB_WORKSPACE/"
-          cp out/arch/arm64/boot/Image.gz "$GITHUB_WORKSPACE/Image-mainline.gz"
-          cp out/arch/arm64/boot/dts/mediatek/mt6768-oppo-ossi.dtb "$GITHUB_WORKSPACE/"
+          cp arch/arm64/boot/Image.gz "$GITHUB_WORKSPACE/Image-mainline.gz"
+          cp arch/arm64/boot/dts/mediatek/mt6768-oppo-ossi.dtb "$GITHUB_WORKSPACE/"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
